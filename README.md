@@ -28,10 +28,11 @@ Type `/graphify` in your AI coding assistant and it maps your entire project —
 Works in Claude Code, Codex, OpenCode, Kilo Code, Cursor, Gemini CLI, GitHub Copilot CLI, VS Code Copilot Chat, Aider, Amp, OpenClaw, Factory Droid, Trae, Hermes, Kimi Code, Kiro, Pi, Devin CLI, and Google Antigravity.
 
 ```
-/graphify .
+/graphify extract .
+/graphify cluster-only .
 ```
 
-That's it. You get three files:
+That flow produces three files:
 
 ```
 graphify-out/
