@@ -56,6 +56,20 @@ def _get_tokenizer():
 # Cached at import time. None if tiktoken is unavailable; consumers must handle.
 _TOKENIZER = _get_tokenizer()
 
+
+def _count_text_tokens(content: str) -> int:
+    """Count tokens in untrusted source text without treating control-token
+    literals as tokenizer directives.
+
+    Source files can contain strings such as ``<|endoftext|>`` as test data,
+    documentation, or prompt-injection examples. For chunk packing they are
+    plain corpus text, so tiktoken must encode them as ordinary text instead of
+    raising on "disallowed special token".
+    """
+    if _TOKENIZER is None:
+        return len(content) // _CHARS_PER_TOKEN
+    return len(_TOKENIZER.encode(content, disallowed_special=()))
+
 BACKENDS: dict[str, dict] = {
     "claude": {
         # ANTHROPIC_BASE_URL points the backend at any Anthropic-compatible
@@ -1411,7 +1425,7 @@ def _estimate_file_tokens(unit: "Path | FileSlice") -> int:
             content = read_slice_text(unit)[:_FILE_CHAR_CAP]
         except OSError:
             return 0
-        return len(_TOKENIZER.encode(content)) + (_PER_FILE_OVERHEAD_CHARS // _CHARS_PER_TOKEN)
+        return _count_text_tokens(content) + (_PER_FILE_OVERHEAD_CHARS // _CHARS_PER_TOKEN)
 
     path = unit
     # Raster images are not read as text; a vision model bills them at a roughly
@@ -1430,7 +1444,7 @@ def _estimate_file_tokens(unit: "Path | FileSlice") -> int:
         content = path.read_text(encoding="utf-8", errors="replace")[:_FILE_CHAR_CAP]
     except OSError:
         return 0
-    return len(_TOKENIZER.encode(content)) + (_PER_FILE_OVERHEAD_CHARS // _CHARS_PER_TOKEN)
+    return _count_text_tokens(content) + (_PER_FILE_OVERHEAD_CHARS // _CHARS_PER_TOKEN)
 
 
 def _pack_chunks_by_tokens(
