@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "note": "Grandfathered no-bypass violations. New violations (fingerprints not listed here) fail enforce_no_bypass --strict. Drive this list DOWN; never up. Regenerate with: python scripts/ci/enforce_no_bypass.py --write-baseline <this file>",
+  "fingerprints": [
+    "monkeypatch_internal_mock|tests/test_watch.py|55b7473932a1",
+    "unittest_mock_import|tests/test_security.py|afce69c1f7ad",
+    "unittest_mock_import|tests/test_serve.py|27a5980abeb6"
+  ]
+}

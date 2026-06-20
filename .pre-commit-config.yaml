@@ -1,0 +1,13 @@
+repos:
+
+  - repo: local
+    hooks:
+      - id: enforce-no-bypass
+        name: enforce no-bypass (no mocks / hardcoded endpoints / stubs of real services)
+        # Baselined ratchet (scripts/ci/no_bypass_baseline.json) -- drive it DOWN
+        # by de-mocking; never regenerate it to hide a new violation. Only NEW
+        # violations block the commit. Gate lives in BulletTrain.
+        entry: python ../BulletTrain/scripts/ci/enforce_no_bypass.py --root . --strict --baseline scripts/ci/no_bypass_baseline.json
+        language: system
+        pass_filenames: false
+        always_run: true
