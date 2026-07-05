@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>manual-paste.md</title>
+  <script>(function(){try{var pref=localStorage.getItem("theme")||"system";var dark=pref==="dark"||(pref==="system"&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.dataset.theme=dark?"dark":"light";document.documentElement.dataset.themePreference=pref;}catch(e){document.documentElement.dataset.theme="light";document.documentElement.dataset.themePreference="system";}})();</script>
+  <link rel="stylesheet" href="../../../../../_html_docs/_design_system/colors_and_type.css?v=2026-07-05T11%3A08%3A14.247Z">
+  <link rel="stylesheet" href="../../../../../_html_docs/_design_system/utilities.css?v=2026-07-05T11%3A08%3A14.247Z">
+  <link rel="stylesheet" href="../../../../../_html_docs/_assets/docs.css?v=2026-07-05T11%3A08%3A14.247Z">
+  <script src="../../../../../_html_docs/_assets/index.js?v=2026-07-05T11%3A08%3A14.247Z" defer></script>
+</head>
+<body class="bt-app docs-app">
+  <a class="skip-link" href="#main-content">Skip to document</a>
+  <div class="page-shell">
+    <aside class="toc-panel bt-card">
+      <a class="index-link bt-nav-item" href="../../../../../_html_docs/guides-index.html">Documentation index</a>
+      <div class="source-path">graphify\tools\skillgen\fragments\dispatch\manual-paste.md</div>
+      <nav aria-label="Table of contents">
+        <h2>Contents</h2>
+        <p class="empty-toc">No headings found.</p>
+      </nav>
+    </aside>
+    <main class="content-panel bt-card bt-card-elevated" id="main-content">
+      <header class="document-header">
+        <div class="document-heading">
+          <div class="eyebrow type-label">graphify</div>
+          <h1>manual-paste.md</h1>
+          <div class="sx-rainbow-underline"></div>
+        </div>
+        <div class="document-actions">
+          <button class="bt-btn bt-btn-sm theme-toggle" type="button" data-theme-toggle>
+            Theme: <span data-theme-label>System</span>
+          </button>
+        </div>
+        <div class="document-meta">
+          <a href="../../../../../_html_docs/_source_markdown/graphify/tools/skillgen/fragments/dispatch/manual-paste.md">Source Markdown</a>
+          <span>graphify\tools\skillgen\fragments\dispatch\manual-paste.md</span>
+        </div>
+      </header>
+      <article class="markdown-body">
+<p><strong>Step B2 - Dispatch subagents and paste their responses</strong></p>
+<blockquote>
+<p><strong>No automated subagent tool:</strong> this host has no parallel Agent/Task API, so
+extraction is driven by hand. Dispatch a subagent per chunk however the host
+allows (a fresh conversation, a parallel pane), then paste each response back.</p>
+</blockquote>
+<p>For each chunk of uncached files (20-25 per chunk), give a subagent the extraction prompt below. When it returns, paste its JSON response and write it to that chunk&#39;s file so Step B3 can collect it:</p>
+<pre><code class="hljs language-bash"><span class="hljs-comment"># After pasting a subagent&#x27;s JSON for chunk N, save it (replace N and PASTED_JSON):</span>
+PROJECT_ROOT=$(<span class="hljs-built_in">cat</span> graphify-out/.graphify_root)
+<span class="hljs-built_in">cat</span> &gt; <span class="hljs-string">&quot;<span class="hljs-variable">${PROJECT_ROOT}</span>/graphify-out/.graphify_chunk_0N.json&quot;</span> &lt;&lt;<span class="hljs-string">&#x27;CHUNK_JSON&#x27;</span>
+PASTED_JSON
+CHUNK_JSON</code></pre>
+<p>Repeat for every chunk. Each chunk&#39;s JSON must land in its own <code>graphify-out/.graphify_chunk_NN.json</code> before Step B3 runs.</p>
+<p>Subagent prompt template:</p>
+<p>See <code>references/extraction-spec.md</code> for the exact subagent prompt (JSON schema, node-ID rules, confidence rubric, hyperedge, and vision rules). Load it only here, only when at least one chunk holds a doc, paper, or image; a pure-code corpus has skipped Part B and never reads it. Pass each subagent that prompt verbatim with FILE_LIST, CHUNK_NUM, TOTAL_CHUNKS, and DEEP_MODE substituted, and write its response to that chunk&#39;s file.</p>
+
+      </article>
+      <footer class="document-footer">
+        Generated from Markdown on 2026-07-05T11:08:14.247Z.
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
