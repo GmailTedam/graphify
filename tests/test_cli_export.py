@@ -301,6 +301,69 @@ def test_cluster_only_creates_output_dir_when_missing(tmp_path):
     assert (tmp_path / "graphify-out" / "GRAPH_REPORT.md").exists()
 
 
+def test_cluster_only_shrink_guard_leaves_report_and_labels_untouched(tmp_path):
+    """If build_from_json collapses nodes, cluster-only must not write a report
+    that describes a graph.json it refused to overwrite.
+    """
+    out = tmp_path / "graphify-out"
+    out.mkdir()
+    graph_json = out / "graph.json"
+    report = out / "GRAPH_REPORT.md"
+    labels = out / ".graphify_labels.json"
+    html = out / "graph.html"
+
+    graph = {
+        "directed": False,
+        "multigraph": False,
+        "graph": {},
+        "nodes": [
+            {
+                "id": "dup",
+                "label": "Duplicate",
+                "type": "function",
+                "file_type": "code",
+                "source_file": "a.py",
+            },
+            {
+                "id": "dup",
+                "label": "Duplicate again",
+                "type": "function",
+                "file_type": "code",
+                "source_file": "b.py",
+            },
+            {
+                "id": "other",
+                "label": "Other",
+                "type": "function",
+                "file_type": "code",
+                "source_file": "c.py",
+            },
+        ],
+        "links": [
+            {
+                "source": "dup",
+                "target": "other",
+                "relation": "calls",
+                "confidence": "EXTRACTED",
+                "source_file": "a.py",
+            }
+        ],
+    }
+    graph_json.write_text(json.dumps(graph), encoding="utf-8")
+    report.write_text("old report", encoding="utf-8")
+    labels.write_text(json.dumps({"7": "Old Label"}), encoding="utf-8")
+    html.write_text("<html>old</html>", encoding="utf-8")
+
+    r = _run(["cluster-only", ".", "--no-viz"], tmp_path)
+
+    assert r.returncode != 0
+    assert "refused to overwrite graph.json" in r.stderr
+    assert report.read_text(encoding="utf-8") == "old report"
+    assert json.loads(labels.read_text(encoding="utf-8")) == {"7": "Old Label"}
+    assert html.read_text(encoding="utf-8") == "<html>old</html>"
+    assert len(json.loads(graph_json.read_text(encoding="utf-8"))["nodes"]) == 3
+
+
 # Regression test for #1027 - cluster-only must remap labels via node overlap
 
 def test_cluster_only_remaps_labels_to_previous_cids(tmp_path):

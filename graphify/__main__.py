@@ -3273,14 +3273,22 @@ def main() -> None:
         tokens = {"input": 0, "output": 0}
         from graphify.export import _git_head as _gh
         _commit = _gh()
+        from graphify.export import backup_if_protected as _backup
+        _backup(out)
+        wrote_graph = to_json(G, communities, str(out / "graph.json"), community_labels=labels)
+        if not wrote_graph:
+            print(
+                "error: cluster-only refused to overwrite graph.json because the "
+                "clustered graph has fewer nodes. GRAPH_REPORT.md, labels, and "
+                "graph.html were left untouched.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         report = generate(G, communities, cohesion, labels, gods, surprises,
                           {"warning": "cluster-only mode — file stats not available"},
                           tokens, str(watch_path), suggested_questions=questions,
                           min_community_size=min_community_size, built_at_commit=_commit)
         (out / "GRAPH_REPORT.md").write_text(report, encoding="utf-8")
-        from graphify.export import backup_if_protected as _backup
-        _backup(out)
-        to_json(G, communities, str(out / "graph.json"), community_labels=labels)
         labels_path.write_text(json.dumps({str(k): v for k, v in labels.items()}, ensure_ascii=False), encoding="utf-8")
 
         # Mirror watch.py pattern: gate to_html so core outputs (graph.json +

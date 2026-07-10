@@ -206,9 +206,32 @@ def build_from_json(extraction: dict, *, directed: bool = False, root: str | Pat
     # populates source_location, so those ghosts survived. Extended fix: use
     # _origin=="ast" as the canonical signal. AST nodes always win; any non-AST
     # node sharing (basename, label) with an AST node is a ghost.
+    def _is_code_ghost_candidate(attrs: dict) -> bool:
+        """Return True for nodes eligible for AST/LLM ghost merging.
+
+        The ghost merge exists to collapse duplicate code symbols produced by
+        semantic extraction. Markdown and other document headings can share the
+        same (basename, label) as AST-extracted document anchors; merging those
+        nodes drops real requirement/specification graph vertices during
+        cluster-only rebuilds.
+        """
+        if attrs.get("file_type") != "code":
+            return False
+        suffix = Path(str(attrs.get("source_file", ""))).suffix.lower()
+        return suffix not in {
+            ".md",
+            ".mdx",
+            ".rst",
+            ".txt",
+            ".adoc",
+            ".pdf",
+            ".doc",
+            ".docx",
+        }
+
     _loc_nodes: dict[tuple[str, str], str] = {}   # (basename, label) -> canonical node id
     _loc_collisions: set[tuple[str, str]] = set()  # keys shared by 2+ AST nodes
-    _noloc_nodes: dict[tuple[str, str], str] = {}  # (basename, label) -> ghost node id
+    _noloc_nodes: dict[tuple[str, str], list[str]] = {}  # (basename, label) -> ghost node ids
 
     # Pass 1: collect canonical nodes — AST-origin nodes take precedence over LLM nodes.
     # When 2+ AST nodes share a key (same-named symbols in same-named files across
@@ -222,6 +245,8 @@ def build_from_json(extraction: dict, *, directed: bool = False, root: str | Pat
         sf = str(attrs.get("source_file", ""))
         basename = Path(sf).name if sf else ""
         if not label or not basename:
+            continue
+        if not _is_code_ghost_candidate(attrs):
             continue
         is_ast = attrs.get("_origin") == "ast"
         if attrs.get("source_location") or is_ast:
@@ -245,14 +270,19 @@ def build_from_json(extraction: dict, *, directed: bool = False, root: str | Pat
         basename = Path(sf).name if sf else ""
         if not label or not basename:
             continue
+        if not _is_code_ghost_candidate(attrs):
+            continue
         key = (basename, label)
         if key in _loc_collisions:
             continue  # ambiguous key: no safe canonical winner, leave ghost intact
         if key in _loc_nodes and _loc_nodes[key] != nid:
-            _noloc_nodes[key] = nid
+            _noloc_nodes.setdefault(key, []).append(nid)
     # For every ghost that has an AST counterpart, record a remap.
     _ghost_remap: dict[str, str] = {}  # ghost_id -> canonical_id
-    for key, sem_id in _noloc_nodes.items():
+    for key, sem_ids in _noloc_nodes.items():
+        if len(sem_ids) != 1:
+            continue
+        sem_id = sem_ids[0]
         ast_id = _loc_nodes.get(key)
         if ast_id is not None:
             _ghost_remap[sem_id] = ast_id

@@ -257,6 +257,126 @@ def test_ghost_merge_skipped_on_basename_collision():
     assert not G.has_edge("caller", "b_render")
 
 
+def test_ghost_merge_preserves_document_heading_nodes():
+    """Ghost merging is only for duplicate code symbols, not markdown headings.
+
+    A semantic/document node can share (basename, label) with an AST-extracted
+    markdown heading. That still represents a real document/specification
+    vertex and must not be collapsed during cluster-only rebuilds.
+    """
+    ext = {
+        "nodes": [
+            {
+                "id": "docs_requirements_requirements",
+                "label": "REQUIREMENTS.md",
+                "file_type": "document",
+                "source_file": "docs/REQUIREMENTS.md",
+                "source_location": "L1",
+                "_origin": "ast",
+            },
+            {
+                "id": "requirements_md",
+                "label": "REQUIREMENTS.md",
+                "file_type": "document",
+                "source_file": "docs/REQUIREMENTS.md",
+            },
+            {
+                "id": "traceability",
+                "label": "Traceability",
+                "file_type": "document",
+                "source_file": "docs/TRACE.md",
+                "source_location": "L1",
+                "_origin": "ast",
+            },
+        ],
+        "edges": [
+            {
+                "source": "traceability",
+                "target": "requirements_md",
+                "relation": "references",
+                "confidence": "EXTRACTED",
+                "source_file": "docs/TRACE.md",
+                "weight": 1.0,
+            }
+        ],
+        "input_tokens": 0,
+        "output_tokens": 0,
+    }
+
+    G = build_from_json(ext)
+
+    assert "requirements_md" in G.nodes()
+    assert G.has_edge("traceability", "requirements_md")
+
+
+def test_ghost_merge_skips_multiple_semantic_ghosts_for_same_key():
+    """Do not merge one arbitrary ghost when several semantic nodes share the
+    same code symbol key.
+
+    Requirement-derived nodes can all point at the same test module label. A
+    dict keyed by (basename, label) used to retain whichever ghost won set
+    iteration and drop that one node while leaving its siblings, causing
+    non-deterministic graph shrinkage.
+    """
+    ext = {
+        "nodes": [
+            {
+                "id": "tests_acceptance",
+                "label": "test_acceptance.py",
+                "file_type": "code",
+                "source_file": "tests/test_acceptance.py",
+                "source_location": "L1",
+                "_origin": "ast",
+            },
+            {
+                "id": "fr_acceptance_test",
+                "label": "test_acceptance.py",
+                "file_type": "code",
+                "source_file": "tests/test_acceptance.py",
+            },
+            {
+                "id": "nfr_acceptance_test",
+                "label": "test_acceptance.py",
+                "file_type": "code",
+                "source_file": "tests/test_acceptance.py",
+            },
+            {
+                "id": "requirement",
+                "label": "Requirement",
+                "file_type": "document",
+                "source_file": "docs/requirements.md",
+            },
+        ],
+        "edges": [
+            {
+                "source": "requirement",
+                "target": "fr_acceptance_test",
+                "relation": "references",
+                "confidence": "EXTRACTED",
+                "source_file": "docs/requirements.md",
+                "weight": 1.0,
+            },
+            {
+                "source": "requirement",
+                "target": "nfr_acceptance_test",
+                "relation": "references",
+                "confidence": "EXTRACTED",
+                "source_file": "docs/requirements.md",
+                "weight": 1.0,
+            },
+        ],
+        "input_tokens": 0,
+        "output_tokens": 0,
+    }
+
+    G = build_from_json(ext)
+
+    assert "fr_acceptance_test" in G.nodes()
+    assert "nfr_acceptance_test" in G.nodes()
+    assert G.has_edge("requirement", "fr_acceptance_test")
+    assert G.has_edge("requirement", "nfr_acceptance_test")
+
+
 def test_build_merge_preserves_call_edge_direction(tmp_path):
     """Regression for #760.
 
